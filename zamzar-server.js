@@ -43,6 +43,7 @@ Zamzar.Job = function(file,target_format){
 		this.metadata = this._startConversion(stream, this.target_format);
 		this.metadata = this._waitForConversion(this.metadata);
 		this.metadata.downloadUrl = this._getDownloadUrl(this.metadata);
+		this.metadata.signedUrl = this._getSignedUrl(this.metadata);
 		return this.metadata;
 	};
 
@@ -161,14 +162,19 @@ Zamzar.Job = function(file,target_format){
 		return future.waitFor(Zamzar.options.timeout);
 	}
 
-
 	this._getDownloadUrl = function(metadata){
-		// Return the signed url to the file object
-		// While the metadata object contains a file url, that url is just canonical
-		// Uses Futures to block until ready
+		// Return the canonical download url for the file object
+		// Proper authorization is required to access this url
 		var fileID = metadata.target_files[0].id;
-	    var future = new Future();
-	    var url = 'https://api.zamzar.com/v1/files/' + fileID + '/content';
+	    return 'https://api.zamzar.com/v1/files/' + fileID + '/content';
+	}
+
+
+	this._getSignedUrl = function(metadata){
+		// Return the direct signed url to the file object
+		// The url will point directly to a file on AWS and does not require auth
+		var future = new Future();
+	    var url = this._getDownloadUrl(metadata)
 		request.get(url, {followRedirect:false}, function (err, response, body) {
 		    if (err) {
 		        console.error('Unable to download file:', err);
