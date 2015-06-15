@@ -4,14 +4,15 @@ var path = Npm.require('path');
 var request = Npm.require('request');
 var streamifier = Npm.require('streamifier');
  
-var base = "/Users/maxferguson/Apps/MeteorPackages/meteor-zamzar-benchmark/packages/meteor-zamzar/assets"
-var file1 = path.join(base,'form.xlsx'); //Assets.getBinary("assets/demo.docx");
-var file2 = path.join(base,'demo.docx'); //Assets.getBinary("assets/form.xlsx");
-var file3 = path.join(base,'tree.jpg');  //Assets.getBinary("assets/tree.jpg");
+var file1 = 'assets/form.xlsx';
+var file2 = 'assets/demo.docx';
+var file3 = 'assets/tree.jpg';
 var outfile1 = path.join(getUserHome(), 'desktop', 'zamzar-test1.pdf'); 
 var outfile2 = path.join(getUserHome(), 'desktop', 'zamzar-test2.pdf'); 
 
-var APIKEY = "ade1893b8b5de22218b430f02c9d0ee08cba1fad";
+// The api key must be provided in Meteor.settings
+// This is not strictly required for general use, but tests will fail without it
+var apikey = Meteor.settings.zamzar.apikey;
 Zamzar.config({apikey:APIKEY, verbose:true});
 
 
@@ -32,7 +33,7 @@ Tinytest.add('test-job', function (test) {
 // Test the conversion of document1
 Tinytest.add('test-convert-file1', function (test) {
   var format = "pdf";
-  var file = fs.createReadStream(file1);
+  var file =  AssetReadableStream(Assets).get(file1);
   var job = new Zamzar.Job(file,format);
   var result = job.convert();
   test.equal(result.status, "successful");
@@ -43,7 +44,7 @@ Tinytest.add('test-convert-file1', function (test) {
 // Test the conversion of document2
 Tinytest.add('test-convert-file2', function (test) {
   var format = "pdf";
-  var file = fs.createReadStream(file3);
+  var file = AssetReadableStream(Assets).get(file3);
   var job = new Zamzar.Job(file,format);
   var result = job.convert();
   test.equal(result.status, "successful");
@@ -53,7 +54,7 @@ Tinytest.add('test-convert-file2', function (test) {
 // Test the conversion of document3
 Tinytest.add('test-convert-file3', function (test) {
   var format = "pdf";
-  var file = fs.createReadStream(file2);
+  var file = AssetReadableStream(Assets).get(file2);
   var job = new Zamzar.Job(file,format);
   var result = job.convert();
   test.isTrue(result.status,"Failed: Metadata needs a status");
@@ -63,7 +64,7 @@ Tinytest.add('test-convert-file3', function (test) {
 // Test the download of document1
 Tinytest.add('test-download', function (test) {
   var format = "pdf";
-  var file = fs.createReadStream(file3);
+  var file = AssetReadableStream(Assets).get(file3);
   var job = new Zamzar.Job(file,format);
   var result = job.convert();
   var stream = job.download();
@@ -73,7 +74,7 @@ Tinytest.add('test-download', function (test) {
 // Test the manual download
 Tinytest.add('test-manual-download', function (test) {
   var format = "pdf";
-  var file = fs.createReadStream(file2);
+  var file = AssetReadableStream(Assets).get(file2);
   var job = new Zamzar.Job(file,format);
   var result = job.convert();
 
@@ -85,3 +86,7 @@ Tinytest.add('test-manual-download', function (test) {
   var stream = request(result.downloadUrl)
   stream.pipe(fs.createWriteStream(outfile2));
 });
+
+
+
+

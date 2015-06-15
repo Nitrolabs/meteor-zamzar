@@ -1,5 +1,5 @@
 Package.describe({
-  name: 'zamzar',
+  name: 'maxkferg:zamzar',
   version: '0.1.1',
   summary: 'Convert files using the zamzar API',
   git: 'https://github.com/NitroLabs/meteor-zamzar.git',
@@ -9,13 +9,13 @@ Package.describe({
 Npm.depends({
   'temp':'0.8.1',
   'request':'2.57.0',
-  'valid-url':'1.0.9',
-  'streamifier':'0.1.1'
+  'valid-url':'1.0.9'
 })
 
 Package.onUse(function(api) {
   api.versionsFrom('1.1.0.2');
   api.export('Zamzar');
+  api.use('keyvan:asset-readable-stream@0.0.1');
   api.addFiles('zamzar-client.js','client');
   api.addFiles('zamzar-server.js','server');
 });
@@ -27,7 +27,7 @@ Package.onTest(function(api) {
     "assets/tree.jpg",
   ]
   api.use('tinytest');
-  api.use('zamzar');
+  api.use('maxkferg:zamzar');
   api.addFiles('zamzar-tests.js');
   api.addFiles(assets,'server',{isAsset:true});
 });
