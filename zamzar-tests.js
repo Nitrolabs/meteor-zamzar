@@ -9,6 +9,7 @@ var assets = path.join(process.env.PWD,'packages','meteor-zamzar','assets');
 var file1 = path.join(assets,'form.xlsx');
 var file2 = path.join(assets,'demo.docx');
 var file3 = path.join(assets,'tree.jpg');
+var url1 = "http://www.stevencha.com/TheLastNinjaIntern.docx";
 var outfile1 = path.join(getUserHome(), 'desktop', 'zamzar-test1.pdf'); 
 var outfile2 = path.join(getUserHome(), 'desktop', 'zamzar-test2.pdf'); 
 
@@ -31,17 +32,13 @@ Tinytest.add('test-job', function (test) {
 });
 
 // Test the conversion of file from a url
-// XXX:
-/*
-Tinytest.add('test-convert-file1', function (test) {
+Tinytest.add('test-convert-url1', function (test) {
   var format = "pdf";
-  var file = "http://www.somefile.com"
-  var job = new Zamzar.Job(file,format);
+  var job = new Zamzar.Job(url1,format);
   var result = job.convert();
   test.equal(result.status, "successful");
   test.equal(_.isString(result.downloadUrl),true);
 });
-*/
 
 // Test the conversion of document1
 Tinytest.add('test-convert-file1', function (test) {
