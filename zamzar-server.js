@@ -86,6 +86,7 @@ Zamzar.Job = function(file,target_format){
 			return file;
 		} else {
 			if (verbose) console.log('Unknown file object');
+			return file;
 			throw new Meteor.Error('Unknown file object');
 		}
 	};
