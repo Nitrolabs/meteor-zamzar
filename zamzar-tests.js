@@ -30,6 +30,19 @@ Tinytest.add('test-job', function (test) {
 	test.equal(_.isFunction(job.download), true);
 });
 
+// Test the conversion of file from a url
+// XXX:
+/*
+Tinytest.add('test-convert-file1', function (test) {
+  var format = "pdf";
+  var file = "http://www.somefile.com"
+  var job = new Zamzar.Job(file,format);
+  var result = job.convert();
+  test.equal(result.status, "successful");
+  test.equal(_.isString(result.downloadUrl),true);
+});
+*/
+
 // Test the conversion of document1
 Tinytest.add('test-convert-file1', function (test) {
   var format = "pdf";

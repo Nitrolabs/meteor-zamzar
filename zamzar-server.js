@@ -73,7 +73,7 @@ Zamzar.Job = function(file,target_format){
 		// File input could be a url, filepath, or readStream
 		var verbose = Zamzar.options.verbose;
 		if (_.isString(file)){
-			var uri = validUrl.is_web_uri(value);
+			var uri = validUrl.is_web_uri(file);
 			if (uri){
 				if (verbose) console.log("Reading uri");
 				return request(uri);
