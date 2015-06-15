@@ -29,12 +29,14 @@ Zamzar.config = function(options){
 
 
 
-Zamzar.Job = function(file,target_format){
+Zamzar.Job = function(file,target_format,filename){
 	// Job object. Controls the conversion flow.
 	// @file - The file to be converted. Either a url, filepath or readStream
 	// @target_format - the target conversion format. See the Zamzar documentation
+	// @filename (options) - the file name. Used by Zamzar to determine the current format
 	this.file = file;
 	this.target_format = target_format;
+	this.filename = filename;
 
 
 	this.convert = function(){
@@ -101,6 +103,9 @@ Zamzar.Job = function(file,target_format){
 	        target_format: target_format,
 	        source_file: read_stream
 	    };
+	    if (this.filename){
+	    	form.name = filename;
+	    }
 	    
 	    request.post('https://api.zamzar.com/v1/jobs/', {formData:form}, function (err, response, body) {
 	        if (err) {

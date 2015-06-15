@@ -1,6 +1,6 @@
 Package.describe({
   name: 'maxkferg:zamzar',
-  version: '0.1.8',
+  version: '0.1.10',
   summary: 'Convert files using the Zamzar API',
   git: 'https://github.com/NitroLabs/meteor-zamzar.git',
   documentation: 'README.md'
