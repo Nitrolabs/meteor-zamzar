@@ -1,8 +1,8 @@
 Package.describe({
   name: 'zamzar',
-  version: '0.0.1',
+  version: '0.1.1',
   summary: 'Convert files using the zamzar API',
-  git: '',
+  git: 'https://github.com/NitroLabs/meteor-zamzar.git',
   documentation: 'README.md'
 });
 
@@ -19,7 +19,6 @@ Package.onUse(function(api) {
   api.addFiles('zamzar-client.js','client');
   api.addFiles('zamzar-server.js','server');
 });
-
 
 Package.onTest(function(api) {
   var assets = [
