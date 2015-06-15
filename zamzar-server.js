@@ -53,10 +53,8 @@ Zamzar.Job = function(file,target_format){
 		if (!this.metadata){
 			return Meteor.throw("Call job.convert before job.download")
 		} else {
-			var fileID = this.metadata.target_files[0].id;
-		    var future = new Future();
-		    var url = this._getDownloadUrl(this.metadata);
-		    console.log(url)
+			var future = new Future();
+		    var url = this._getSignedUrl(this.metadata);
 		    if (Zamzar.options.verbose) console.log("Downloading file");
 		    var stream = request(url).auth(Zamzar.options.apikey, '', true);
 		    // Check the request for errors

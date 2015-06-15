@@ -88,11 +88,11 @@ Tinytest.add('test-manual-download', function (test) {
   var result = job.convert();
 
   test.equal(result.status, "successful");
-  test.isTrue(result.downloadUrl);
-  test.isTrue(_.isString(result.downloadUrl));
-  console.log(result.downloadUrl)
+  test.isTrue(result.signedUrl);
+  test.isTrue(_.isString(result.signedUrl));
+  console.log(result.signedUrl)
 
-  var stream = request(result.downloadUrl)
+  var stream = request(result.signedUrl)
   stream.pipe(fs.createWriteStream(outfile2));
 });
 
