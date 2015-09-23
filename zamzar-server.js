@@ -1,5 +1,7 @@
 var fs = Npm.require('fs');
 var _ = Npm.require('underscore');
+var mime = Npm.require('mime');
+var retry = Npm.require('retry');
 var request = Npm.require('request');
 var validUrl = Npm.require('valid-url');
 var Future = Npm.require('fibers/future');
@@ -29,14 +31,14 @@ Zamzar.config = function(options){
 
 
 
-Zamzar.Job = function(file,target_format,filename){
+Zamzar.Job = function(file,target_format,mimetype){
 	// Job object. Controls the conversion flow.
 	// @file - The file to be converted. Either a url, filepath or readStream
 	// @target_format - the target conversion format. See the Zamzar documentation
-	// @filename (options) - the file name. Used by Zamzar to determine the current format
+	// @mimetype (optional) - the source file mimetype. Can be provided to overide the assumed mimetype
 	this.file = file;
 	this.target_format = target_format;
-	this.filename = filename;
+	this.mimetype = mimetype;
 
 
 	this.convert = function(){
@@ -75,12 +77,19 @@ Zamzar.Job = function(file,target_format,filename){
 		var verbose = Zamzar.options.verbose;
 		if (_.isString(file)){
 			var uri = validUrl.is_web_uri(file);
-			if (uri){
-				if (verbose) console.log("Reading uri");
-				return request(uri);
-			} else {
+			if (!uri){
 				if (verbose) console.log("Reading file from path");
 				return fs.createReadStream(file);
+			} else {
+				if (verbose) console.log("Reading file from " + uri);
+				return request({ 
+					method: 'GET',
+    				uri: uri,
+    				gzip: true
+    			}, function (error, response, body) {
+					var size = Math.round((response.headers['content-length'] || 0) / 1000);
+  					if (verbose) console.log('Downloaded ' + size + ' kb of compressed data');
+				});
 			}
 		} else if (_.isFunction(file.pipe)){
 			if (verbose) console.log("Reading file from stream");
@@ -98,21 +107,30 @@ Zamzar.Job = function(file,target_format,filename){
 		// Use Futures to block until the response is ready
 		var formData;
 		var future = new Future();
-		
+		var verbose = Zamzar.options.verbose;
+
 	    form = {
 	        target_format: target_format,
 	        source_file: read_stream
 	    };
-	    if (this.filename){
-	    	form.name = filename;
+
+	    if (this.mimetype){
+	    	var format = mime.extension(this.mimetype);
+	    	if (format){
+	    		form.source_format = format
+	    	} else {
+	    		console.info("Unable to guess extension from "+this.mimetype); 
+	    		console.info("Sending multipart form without source_format");
+	    	}
 	    }
 	    
-	    request.post('https://api.zamzar.com/v1/jobs/', {formData:form}, function (err, response, body) {
+	    request.post({url:'https://api.zamzar.com/v1/jobs/', formData:form}, function (err, response, body) {
 	        if (err) {
-		        console.error('Unable to start conversion job', err);
-		        future.throw('Unable to start conversion job', err);
+		        console.error('Unable to start conversion job:\n    ' + err);
+		        future.throw('Unable to start conversion job');
 		    } else if (!body) {
 		    	console.error('Unable to start conversion job');
+		    	if (verbose) console.log(JSON.stringify(response));
 		        future.throw('Response had no body');
 		    } else {
 		    	console.log('Conversion job started');
@@ -125,7 +143,7 @@ Zamzar.Job = function(file,target_format,filename){
 		    }
 		}).auth(Zamzar.options.apikey, '', true);
 
-		return future.waitFor(Zamzar.options.timeout);
+		return future.wait();
 	}
 
 
@@ -135,36 +153,42 @@ Zamzar.Job = function(file,target_format,filename){
 		// Throw an error if the conversion is not complete after timeout
 		var future = new Future();
 		var jobId = metadata.id;
-		var comp;
+		var operation = retry.operation({
+			retries: 20,//Math.round(this.timeout / this.pollrate),
+			factor: 2,
+			minTimeout: 500,//this.pollrate/2,
+			maxTimeout: 2000,//this.pollrate*2,
+			randomize: true,
+		});
+
 
 		console.log('Waiting')
-		comp = Meteor.setInterval(function(){
+		operation.attempt(function(currentAttempt) {
 			request.get('https://api.zamzar.com/v1/jobs/' + jobId, function (err, response, body) {
-			    if (err) {
-			        console.error('Unable to get job', err);
-			        future.throw('Unable to get job', err);
+				if (err) {
+			    	console.error('Unable to get job status:',err);
+			    	future.throw('Unable to get job status:',err);
 			    } else {
 			    	var data = JSON.parse(body);
-			        if (data.status==="successful" && !future.isResolved()){
+			        if (data.status==="successful"){
 			        	if (Zamzar.options.verbose){
 			        		console.log("Conversion Success");
-			        		console.log('Status:',data);
 			        	}
 			        	future.return(data);
-			        	clearInterval(comp);		
 			        } else if (data.errors){
-			        	clearInterval(comp);
 			        	console.log("Conversion Error");
 			        	future.throw(data.errors[0]);
-			        } else if (Zamzar.options.verbose) {
-			        	console.log("Not ready yet");
-			        	console.log('Status:',data);
+			        } else if (operation.retry("Conversion took to long")) {
+			       		if (Zamzar.options.verbose) console.info("Status: Not ready yet");
+			        } else {
+			        	console.error("Convert operation timeout");
+			        	future.throw(operation.mainError());
 			        }
 			    }
 			}).auth(Zamzar.options.apikey, '', true);
-		}, Zamzar.options.pollrate);
-		
-		return future.waitFor(Zamzar.options.timeout);
+		});
+
+		return future.wait();
 	}
 
 	this._getDownloadUrl = function(metadata){
@@ -194,23 +218,6 @@ Zamzar.Job = function(file,target_format,filename){
 		  		future.return(response.headers.location);
 		    }
 		}).auth(Zamzar.options.apikey, '', true);
-	    return future.waitFor(Zamzar.options.timeout);
+	    return future.wait();
 	}
-}
-
-
-console.info('Patching Future')
-Future.prototype.waitFor = function(delay){
-	// Wait for @delay, and then throw a timeout error
-	// Disables return and throw handlers after timout.
-	var self = this;
-	Meteor.setTimeout(function(){
-		if (!self.isResolved()){
-			var message = "Future timeout after "+delay/1000+"s"
-			self.throw(new Meteor.Error(500,message));
-			self.throw = function(){ console.error("Late Future throw")};
-			self.return = function(){ console.info("Late Future return")};
-		}
-	},delay);
-	return self.wait();
 }

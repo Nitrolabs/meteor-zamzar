@@ -24,10 +24,11 @@ var options = {
 Zamzar.configure(options)
 ```
 
-### Zamzar.Job(file,target_format)
+### Zamzar.Job(file,target_format,[source_mimetype])
 The Zamzar API is exposed through job objects. A job is created to describe the type of conversion that will be processed.<br>
 * file - The file to be converted. Either a url, local path, or readstream
 * target_format - The format of the converted file. See the allowable
+* source_mimetype - Used to overide the mimetype that Zamzar assumes from the filename
 [formats](https://developers.zamzar.com/formats)
 
 ```js

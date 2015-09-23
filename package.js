@@ -1,6 +1,6 @@
 Package.describe({
   name: 'maxkferg:zamzar',
-  version: '0.1.10',
+  version: '0.1.11',
   summary: 'Convert files using the Zamzar API',
   git: 'https://github.com/NitroLabs/meteor-zamzar.git',
   documentation: 'README.md'
@@ -8,6 +8,8 @@ Package.describe({
 
 Npm.depends({
   'temp':'0.8.1',
+  'mime':'1.3.4',
+  'retry':'0.8.0',
   'request':'2.57.0',
   'valid-url':'1.0.9',
   'streamifier':'0.1.1'
