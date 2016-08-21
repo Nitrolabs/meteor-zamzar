@@ -47,7 +47,6 @@ Zamzar.Job = function(file,target_format,mimetype){
 		this.metadata = this._startConversion(stream, this.target_format);
 		this.metadata = this._waitForConversion(this.metadata);
 		this.metadata.downloadUrl = this._getDownloadUrl(this.metadata);
-		this.metadata.signedUrl = this._getSignedUrl(this.metadata);
 		return this.metadata;
 	};
 
@@ -59,14 +58,30 @@ Zamzar.Job = function(file,target_format,mimetype){
 			return Meteor.throw("Call job.convert before job.download")
 		} else {
 			var future = new Future();
-		    var url = this._getSignedUrl(this.metadata);
+		    var url = this._getDownloadUrl(this.metadata);
 		    if (Zamzar.options.verbose) console.log("Downloading file");
-		    var stream = request(url).auth(Zamzar.options.apikey, '', true);
-		    // Check the request for errors
-		    stream.on('error', function(err) {
-    			console.log(err)
-  			});
-  			return stream;
+
+				var future = new Future();
+
+				// Note: NPM's request library is incompatible with our API when its followRedirect flag is turned
+				// on. Instead, this sample code performs a manual redirect if necessary.
+
+				var stream = request.get({url: url, followRedirect: false}, function (err, response, body) {
+				    if (err) {
+				        console.log(err)
+				    } else {
+				        // We are being redirected
+				        if (response.headers.location) {
+				            // Issue a second request to download the file
+				            var redirectedStream = request(response.headers.location);
+				          	future.return(redirectedStream);
+				        }
+				    }
+				}).auth(apiKey,'',true);
+
+				future.return(stream);
+
+				return future.wait();
 		}
 	};
 
@@ -82,7 +97,7 @@ Zamzar.Job = function(file,target_format,mimetype){
 				return fs.createReadStream(file);
 			} else {
 				if (verbose) console.log("Reading file from " + uri);
-				return request({ 
+				return request({
 					method: 'GET',
     				uri: uri,
     				gzip: true
@@ -119,11 +134,11 @@ Zamzar.Job = function(file,target_format,mimetype){
 	    	if (format){
 	    		form.source_format = format
 	    	} else {
-	    		console.info("Unable to guess extension from "+this.mimetype); 
+	    		console.info("Unable to guess extension from "+this.mimetype);
 	    		console.info("Sending multipart form without source_format");
 	    	}
 	    }
-	    
+
 	    request.post({url:'https://api.zamzar.com/v1/jobs/', formData:form}, function (err, response, body) {
 	        if (err) {
 		        console.error('Unable to start conversion job:\n    ' + err);
@@ -136,7 +151,7 @@ Zamzar.Job = function(file,target_format,mimetype){
 		    	console.log('Conversion job started');
 		    	var data = JSON.parse(body);
 		    	if (data.errors){
-		        	future.throw('The Zamzar API returned an error: ' + JSON.stringify(data.errors));	
+		        	future.throw('The Zamzar API returned an error: ' + JSON.stringify(data.errors));
 		    	} else {
 		        	future.return(data);
 		        }
@@ -196,28 +211,5 @@ Zamzar.Job = function(file,target_format,mimetype){
 		// Proper authorization is required to access this url
 		var fileID = metadata.target_files[0].id;
 	    return 'https://api.zamzar.com/v1/files/' + fileID + '/content';
-	}
-
-
-	this._getSignedUrl = function(metadata){
-		// Return the direct signed url to the file object
-		// The url will point directly to a file on AWS and does not require auth
-		var future = new Future();
-	    var url = this._getDownloadUrl(metadata)
-		request.get(url, {followRedirect:false}, function (err, response, body) {
-		    if (err) {
-		        console.error('Unable to download file:', err);
-		        future.error('Unable to download file:', err);
-		    } else if (!response.headers.location) { 
-		    	console.error("Zamzar would not give us a url to the file")
-				future.error("Zamzar would not give us a url to the file");
-		  	} else if (Zamzar.options.verbose){
-		        console.log('Got the secert url: ',response.headers.location);
-		        future.return(response.headers.location);
-		    } else {
-		  		future.return(response.headers.location);
-		    }
-		}).auth(Zamzar.options.apikey, '', true);
-	    return future.wait();
 	}
 }
